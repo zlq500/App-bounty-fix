@@ -14,6 +14,7 @@ import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavig
 import type {FlagCommentNavigatorParamList, SplitDetailsNavigatorParamList} from '@libs/Navigation/types';
 import {canAccessReport} from '@libs/ReportUtils';
 import NotFoundPage from '@pages/ErrorPage/NotFoundPage';
+import ReportActionNotFoundIndicator from '@pages/inbox/report/ReportActionNotFoundIndicator';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
 import type * as OnyxTypes from '@src/types/onyx';
@@ -84,20 +85,32 @@ export default function <TProps extends WithReportAndReportActionOrNotFoundProps
 
         // Perform the access/not found checks
         // Be sure to avoid showing the not-found page while the parent report actions are still being read from Onyx. The parentReportAction will be undefined while it's being read from Onyx
-        // and then linkedReportAction will either be a valid parentReportAction or an empty object. In the case of an empty object, then it's OK to show the not-found page.
-        if (shouldHideReport || (parentReportAction !== undefined && isEmptyObject(linkedReportAction))) {
+        // and then linkedReportAction will either be a valid parentReportAction or an empty object.
+        // When report exists but reportAction doesn't, show report with subtle feedback instead of NotFoundPage
+        const isReportActionNotFound = parentReportAction !== undefined && isEmptyObject(linkedReportAction);
+        
+        if (shouldHideReport) {
             return <NotFoundPage />;
         }
 
+        // Show subtle feedback when reportAction is not found but report exists
+        const feedbackIndicator = isReportActionNotFound ? (
+            <ReportActionNotFoundIndicator />
+        ) : null;
+
         return (
-            <WrappedComponent
-                // eslint-disable-next-line react/jsx-props-no-spreading
-                {...props}
-                report={report}
-                parentReport={parentReport}
-                reportAction={linkedReportAction}
-                parentReportAction={parentReportAction}
-            />
+            <>
+                {feedbackIndicator}
+                <WrappedComponent
+                    // eslint-disable-next-line react/jsx-props-no-spreading
+                    {...props}
+                    report={report}
+                    parentReport={parentReport}
+                    reportAction={linkedReportAction}
+                    parentReportAction={parentReportAction}
+                    isReportActionNotFound={isReportActionNotFound}
+                />
+            </>
         );
     }
 
